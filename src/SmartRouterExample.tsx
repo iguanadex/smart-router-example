@@ -1,6 +1,6 @@
-import { Native, ChainId, CurrencyAmount, TradeType, Percent } from '@pancakeswap/sdk'
-import { SmartRouter, SmartRouterTrade, SMART_ROUTER_ADDRESSES, SwapRouter } from '@pancakeswap/smart-router'
-import { bscTokens } from '@pancakeswap/tokens'
+import { CurrencyAmount, TradeType, Percent } from '@iguanadex/sdk'
+import { SMART_ROUTER_ADDRESSES, SmartRouter, SmartRouterTrade, SwapRouter } from '@iguanadex/smart-router'
+import { etherlinkTokens } from '@iguanadex/tokens'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   WagmiConfig,
@@ -12,19 +12,44 @@ import {
   useSendTransaction,
 } from 'wagmi'
 import { MetaMaskConnector } from 'wagmi/connectors/metaMask'
-import { createPublicClient, hexToBigInt, http } from 'viem'
-import { bsc } from 'viem/chains'
+import { Chain, createPublicClient, hexToBigInt, http } from 'viem'
 import { GraphQLClient } from 'graphql-request'
 
 import './App.css'
+import { Link } from 'react-router-dom'
 
-const chainId = ChainId.BSC
-const swapFrom = Native.onChain(chainId)
-const swapTo = bscTokens.usdt
+const chainId = 42_793
+const swapFrom = etherlinkTokens.wxtz
+const swapTo = etherlinkTokens.usdc
+
+const etherlink = {
+  id: 42_793,
+  name: 'Etherlink',
+  network: 'etherlink',
+  nativeCurrency: {
+    decimals: 18,
+    name: 'tez',
+    symbol: 'XTZ',
+  },
+  rpcUrls: {
+    public: { http: ['https://node.mainnet.etherlink.com'] },
+    default: { http: ['https://node.mainnet.etherlink.com'] },
+  },
+  blockExplorers: {
+    etherscan: { name: 'Etherscout', url: 'https://explorer.etherlink.com/' },
+    default: { name: 'Etherscout', url: 'https://explorer.etherlink.com/' },
+  },
+  contracts: {
+    multicall3: {
+      address: '0xcA11bde05977b3631167028862bE2a173976CA11',
+      blockCreated: 33899,
+    },
+  },
+} as const satisfies Chain
 
 const publicClient = createPublicClient({
-  chain: bsc,
-  transport: http('https://bsc-dataseed1.binance.org'),
+  chain: etherlink,
+  transport: http('https://node.mainnet.etherlink.com'),
   batch: {
     multicall: {
       batchSize: 1024 * 200,
@@ -34,12 +59,16 @@ const publicClient = createPublicClient({
 
 const config = createConfig({
   autoConnect: true,
-  connectors: [new MetaMaskConnector({ chains: [bsc] })],
+  connectors: [new MetaMaskConnector({ chains: [etherlink] })],
   publicClient,
 })
 
-const v3SubgraphClient = new GraphQLClient('https://api.thegraph.com/subgraphs/name/pancakeswap/exchange-v3-bsc')
-const v2SubgraphClient = new GraphQLClient('https://proxy-worker-api.pancakeswap.com/bsc-exchange')
+const v3SubgraphClient = new GraphQLClient(
+  'https://api.studio.thegraph.com/query/69431/exchange-v3-etherlink/version/latest',
+)
+const v2SubgraphClient = new GraphQLClient(
+  'https://api.studio.thegraph.com/query/69431/exchange-v2-etherlink/version/latest',
+)
 
 const quoteProvider = SmartRouter.createQuoteProvider({
   onChainProvider: () => publicClient,
@@ -65,7 +94,7 @@ function Main() {
   const { sendTransactionAsync } = useSendTransaction()
 
   const [trade, setTrade] = useState<SmartRouterTrade<TradeType> | null>(null)
-  const amount = useMemo(() => CurrencyAmount.fromRawAmount(swapFrom, 10 ** 16), [])
+  const amount = useMemo(() => CurrencyAmount.fromRawAmount(swapFrom, 10 ** swapFrom.decimals), [])
   const getBestRoute = useCallback(async () => {
     const [v2Pools, v3Pools] = await Promise.all([
       SmartRouter.getV2CandidatePools({
@@ -142,8 +171,11 @@ function Main() {
 
   return (
     <div className="App">
+      <p>
+        <Link to="/">Back to main menu</Link>
+      </p>
       <header className="App-header">
-        <p>Pancakeswap Smart Router Example.</p>
+        <p>Smart Router Example.</p>
         <p>
           Get best quote swapping from {amount.toExact()} {amount.currency.symbol} to{' '}
           {trade?.outputAmount.toExact() || '?'} {swapTo.symbol}

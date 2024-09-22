@@ -1,19 +1,43 @@
-import { Native, ChainId, CurrencyAmount, TradeType } from '@pancakeswap/sdk'
-import { V4Router } from '@pancakeswap/smart-router'
-import { bscTokens } from '@pancakeswap/tokens'
+import { CurrencyAmount, TradeType } from '@iguanadex/sdk'
+import { V4Router } from '@iguanadex/smart-router'
+import { etherlinkTokens } from '@iguanadex/tokens'
 import { useCallback, useMemo, useState } from 'react'
-import { createPublicClient, http } from 'viem'
-import { bsc } from 'viem/chains'
+import { Chain, createPublicClient, http } from 'viem'
 
 import './App.css'
+import { Link } from 'react-router-dom'
 
-const chainId = ChainId.BSC
-const swapFrom = Native.onChain(chainId)
-const swapTo = bscTokens.usdt
+const swapFrom = etherlinkTokens.wxtz
+const swapTo = etherlinkTokens.usdc
 
-const client = createPublicClient({
-  chain: bsc,
-  transport: http('https://bsc-dataseed1.binance.org'),
+const etherlink = {
+  id: 42_793,
+  name: 'Etherlink',
+  network: 'etherlink',
+  nativeCurrency: {
+    decimals: 18,
+    name: 'tez',
+    symbol: 'XTZ',
+  },
+  rpcUrls: {
+    public: { http: ['https://node.mainnet.etherlink.com'] },
+    default: { http: ['https://node.mainnet.etherlink.com'] },
+  },
+  blockExplorers: {
+    etherscan: { name: 'Etherscout', url: 'https://explorer.etherlink.com/' },
+    default: { name: 'Etherscout', url: 'https://explorer.etherlink.com/' },
+  },
+  contracts: {
+    multicall3: {
+      address: '0xcA11bde05977b3631167028862bE2a173976CA11',
+      blockCreated: 33899,
+    },
+  },
+} as const satisfies Chain
+
+const publicClient = createPublicClient({
+  chain: etherlink,
+  transport: http('https://node.mainnet.etherlink.com'),
   batch: {
     multicall: {
       batchSize: 1024 * 200,
@@ -23,16 +47,16 @@ const client = createPublicClient({
 
 export function V4RouterExample() {
   const [trade, setTrade] = useState<Awaited<ReturnType<typeof V4Router.getBestTrade>> | undefined>(undefined)
-  const amount = useMemo(() => CurrencyAmount.fromRawAmount(swapFrom, 10 ** 16), [])
+  const amount = useMemo(() => CurrencyAmount.fromRawAmount(swapFrom, 10 ** swapFrom.decimals), [])
   const getBestRoute = useCallback(async () => {
     const v3Pools = await V4Router.getV3CandidatePools({
-      clientProvider: () => client,
+      clientProvider: () => publicClient,
       currencyA: swapFrom,
       currencyB: swapTo,
     })
     const pools = [...v3Pools]
     const trade = await V4Router.getBestTrade(amount, swapTo, TradeType.EXACT_INPUT, {
-      gasPriceWei: () => client.getGasPrice(),
+      gasPriceWei: () => publicClient.getGasPrice(),
       candidatePools: pools,
     })
     setTrade(trade)
@@ -40,8 +64,11 @@ export function V4RouterExample() {
 
   return (
     <div className="App">
+      <p>
+        <Link to="/">Back to main menu</Link>
+      </p>
       <header className="App-header">
-        <p>Pancakeswap V4 Router Example.</p>
+        <p>V4 Router Example.</p>
         <p>
           Get best quote swapping from {amount.toExact()} {amount.currency.symbol} to{' '}
           {trade?.outputAmount.toExact() || '?'} {swapTo.symbol}
