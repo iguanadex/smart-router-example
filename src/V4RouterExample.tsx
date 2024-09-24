@@ -7,6 +7,7 @@ import { Chain, createPublicClient, http } from 'viem'
 import './App.css'
 import { Link } from 'react-router-dom'
 
+const amountToSell = 10
 const swapFrom = etherlinkTokens.wxtz
 const swapTo = etherlinkTokens.usdc
 
@@ -47,7 +48,7 @@ const publicClient = createPublicClient({
 
 export function V4RouterExample() {
   const [trade, setTrade] = useState<Awaited<ReturnType<typeof V4Router.getBestTrade>> | undefined>(undefined)
-  const amount = useMemo(() => CurrencyAmount.fromRawAmount(swapFrom, 10 ** swapFrom.decimals), [])
+  const amount = useMemo(() => CurrencyAmount.fromRawAmount(swapFrom, amountToSell * 10 ** swapFrom.decimals), [])
   const getBestRoute = useCallback(async () => {
     const v3Pools = await V4Router.getV3CandidatePools({
       clientProvider: () => publicClient,
@@ -58,6 +59,8 @@ export function V4RouterExample() {
     const trade = await V4Router.getBestTrade(amount, swapTo, TradeType.EXACT_INPUT, {
       gasPriceWei: () => publicClient.getGasPrice(),
       candidatePools: pools,
+      maxHops: 2,
+      maxSplits: 2,
     })
     setTrade(trade)
   }, [amount])

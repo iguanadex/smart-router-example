@@ -19,6 +19,8 @@ import './App.css'
 import { Link } from 'react-router-dom'
 
 const chainId = 42_793
+
+const amountToSell = 2500
 const swapFrom = etherlinkTokens.wxtz
 const swapTo = etherlinkTokens.usdc
 
@@ -94,7 +96,7 @@ function Main() {
   const { sendTransactionAsync } = useSendTransaction()
 
   const [trade, setTrade] = useState<SmartRouterTrade<TradeType> | null>(null)
-  const amount = useMemo(() => CurrencyAmount.fromRawAmount(swapFrom, 10 ** swapFrom.decimals), [])
+  const amount = useMemo(() => CurrencyAmount.fromRawAmount(swapFrom, amountToSell * 10 ** swapFrom.decimals), [])
   const getBestRoute = useCallback(async () => {
     const [v2Pools, v3Pools] = await Promise.all([
       SmartRouter.getV2CandidatePools({
