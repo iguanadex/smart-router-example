@@ -18,11 +18,16 @@ import { GraphQLClient } from 'graphql-request'
 import './App.css'
 import { Link } from 'react-router-dom'
 
-const chainId = 42_793
+//////////////////////// INPUTS ////////////////////////
 
-const amountToSell = 2500
-const swapFrom = etherlinkTokens.wxtz
-const swapTo = etherlinkTokens.usdc
+const amountToSell = 4
+const swapFrom = etherlinkTokens.usdt
+const swapTo = etherlinkTokens.wxtz
+
+////////////////////////////////////////////////////////
+
+const chainId = 42_793
+const BIPS_BASE = 10_000n
 
 const etherlink = {
   id: 42_793,
@@ -51,7 +56,7 @@ const etherlink = {
 
 const publicClient = createPublicClient({
   chain: etherlink,
-  transport: http('https://node.mainnet.etherlink.com'),
+  transport: http(etherlink.rpcUrls.public.http[0]),
   batch: {
     multicall: {
       batchSize: 1024 * 200,
@@ -132,7 +137,7 @@ function Main() {
     }
     const { value, calldata } = SwapRouter.swapCallParameters(trade, {
       recipient: address,
-      slippageTolerance: new Percent(1),
+      slippageTolerance: new Percent(25n, BIPS_BASE), // 0.25% ?
     })
     return {
       address: SMART_ROUTER_ADDRESSES[chainId],

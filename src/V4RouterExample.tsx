@@ -7,7 +7,7 @@ import { Chain, createPublicClient, http } from 'viem'
 import './App.css'
 import { Link } from 'react-router-dom'
 
-const amountToSell = 10
+const amountToSell = 1
 const swapFrom = etherlinkTokens.wxtz
 const swapTo = etherlinkTokens.usdc
 
@@ -38,7 +38,7 @@ const etherlink = {
 
 const publicClient = createPublicClient({
   chain: etherlink,
-  transport: http('https://node.mainnet.etherlink.com'),
+  transport: http(etherlink.rpcUrls.public.http[0]),
   batch: {
     multicall: {
       batchSize: 1024 * 200,
